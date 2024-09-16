@@ -26,5 +26,48 @@ Fu = np.array([[0.0, 0.0], [0.0, 0.0], [0.0, -20.0]])
 # displacement for nodes
 Uu = np.array([[0.0, 0.0], [0.0, 0.0], [0.0, 0.0]])
 
+# Young's modulus
+E = 10**6
+
+# cross sectional area
+A = 0.01
+
+# problem dimension, # of columns = 2
+PD = np.size(NL, 1)
+
+# # of nodes = # of rows
+NoN = np.size(NL, 0)
+
+# extended node list
+ENL = np.zeros([NoN, 6*PD])
+
+ENL[:,0:PD] = NL[:,:]
+ENL[:,PD:2*PD] = DorN[:,:]
+
+#
+def assign_BCs(NL, ENL):
+    PD = np.size(NL, 1)
+    NoN = np.size(NL, 0)
+
+    DOFs = 0
+    DOCs = 0
+
+    for i in range(0, NoN):
+        for j in range(0, PD):
+            if ENL[i, PD+j] == -1:
+                DOCs -= 1
+                ENL[i, 2*PD+j] = DOCs
+            else:
+                DOFs += 1
+                ENL[i, 2*PD+j] = DOFs
+
+
+#
+(ENL, DOFs, DOCs) = assign_BCs(NL, ENL)
+
+
+
+
+
 
 
