@@ -1,2 +1,3 @@
-1. Creating GUI platform
-2. Implementing Finite Element Method (FEM)
+01. Creating GUI platform (Tkinter)
+02. Implementing Finite Element Method (FEM): Truss
+03. Implementing Finite Element Method (FEM): uniform mesh
