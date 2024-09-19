@@ -3,7 +3,8 @@
 # AUTHOR: Hyunseung Yoo
 # PURPOSE:
 # REVISION:
-# REFERENCE: https://www.youtube.com/watch?v=tv1TlAebvm0&list=PLnT2pATp7adWUaMh0A8jfoN_OHGAmt_m4&index=2
+# REFERENCE: https://www.youtube.com/watch?v=0zrq2N2qAVo&list=PLnT2pATp7adWUaMh0A8jfoN_OHGAmt_m4&index=1
+#            https://www.youtube.com/watch?v=tv1TlAebvm0&list=PLnT2pATp7adWUaMh0A8jfoN_OHGAmt_m4&index=2
 #            https://www.youtube.com/watch?v=WdCctgAscW0&list=PLnT2pATp7adWUaMh0A8jfoN_OHGAmt_m4&index=3
 #
 # PD: problem dimension
