@@ -4,6 +4,7 @@
 # PURPOSE:
 # REVISION:
 # REFERENCE: https://www.youtube.com/watch?v=tv1TlAebvm0&list=PLnT2pATp7adWUaMh0A8jfoN_OHGAmt_m4&index=2
+#            https://www.youtube.com/watch?v=WdCctgAscW0&list=PLnT2pATp7adWUaMh0A8jfoN_OHGAmt_m4&index=3
 #
 # PD: problem dimension
 # NoN: Number of Nodes
@@ -12,8 +13,18 @@
 # ENL: Extended Node List > size of (NoN x 6*PD)
 #
 
+
 import numpy as np
 import math
+import matplotlib.pyplot as plt
+from matplotlib.colors import Normalize
+from matplotlib.cm import ScalarMappable
+
+
+#===============================================================================================
+# https://www.youtube.com/watch?v=tv1TlAebvm0&list=PLnT2pATp7adWUaMh0A8jfoN_OHGAmt_m4&index=2
+#===============================================================================================
+
 
 # Node List (NoN x PD)
 # coordinates (x, y)
@@ -82,11 +93,11 @@ def assign_BCs(NL, ENL):
     # 2 * PD ~ 3 * PD = Local DoF
     for i in range(0, NoN):
         for j in range(0, PD):
-            # dirichlet node
+            # dirichlet node (fixed)
             if ENL[i, 1*PD+j] == -1:
                 DOCs -= 1
                 ENL[i, 2*PD+j] = DOCs
-            # neumann node
+            # neumann node (free to move)
             else:
                 DOFs += 1
                 ENL[i, 2*PD+j] = DOFs
@@ -137,6 +148,7 @@ def assemble_stiffness(ENL, EL, NL, E, A):
     # return
     return K
 
+
 # FUNCTION ---------------------------------------
 def element_stiffness(n1, ENL, E, A):
     X1 = ENL[n1[0] - 1, 0]      # first node, x
@@ -156,6 +168,7 @@ def element_stiffness(n1, ENL, E, A):
     # return
     return k
 
+
 # FUNCTION ---------------------------------------
 def assemble_forces(ENL, NL):
     PD = np.size(NL, 1)
@@ -170,9 +183,10 @@ def assemble_forces(ENL, NL):
     #
     for i in range(0, NoN):
         for j in range(0, PD):
-            # fixed node
+            # +1: neumann boundary condition (free to move)
             if ENL[i, 1*PD+j] == 1:
                 DOF += 1
+                # force
                 Fp.append(ENL[i, 5*PD+j])
 
     # 1d array
@@ -180,6 +194,7 @@ def assemble_forces(ENL, NL):
 
     # return
     return Fp
+
 
 # FUNCTION ---------------------------------------
 def assemble_displacement(ENL, NL):
@@ -195,9 +210,11 @@ def assemble_displacement(ENL, NL):
     #
     for i in range(0, NoN):
         for j in range(0, PD):
-            if ENL[i, PD + j] == -1:
+            # -1: dirichlet boundary condition (fixed)
+            if ENL[i, 1*PD+j] == -1:
                 DOC += 1
-                Up.append(ENL[i, 4 * PD + j])
+                # displacement
+                Up.append(ENL[i, 4*PD+j])
 
     # 1d array
     Up = np.vstack([Up]).reshape(-1, 1)
@@ -205,6 +222,27 @@ def assemble_displacement(ENL, NL):
     # return
     return Up
 
+
+# FUNCTION ---------------------------------------
+def update_nodes(ENL, Uu, NL, Fu):
+    PD = np.size(NL, 1)
+    NoN = np.size(NL, 0)
+
+    DOFs = 0
+    DOCs = 0
+
+    for i in range(0, NoN):
+        for j in range(0, PD):
+            # +1: neumann boundary condition (free to move)
+            if ENL[i, 1*PD+j] == 1:
+                DOFs += 1
+                ENL[i, 4*PD+j] = Uu[DOFs-1]
+            # -1: dirichlet boundary condition (fixed)
+            else:
+                DOCs += 1
+                ENL[i, 5*PD+j] = Fu[DOCs-1]
+    # return
+    return ENL
 
 
 # 2 * PD ~ 3 * PD = Local DoF
@@ -227,8 +265,117 @@ Fu = Fu.flatten()
 Fp = assemble_forces(ENL, NL)
 Up = assemble_displacement(ENL, NL)
 
+#
+# Fp  Kuu Kup  Uu
+# Fu  Kpu Kpp  Up
+#
+Kuu = K[0*DOFs:1*DOFs, 0*DOFs:1*DOFs]
+Kup = K[0*DOFs:1*DOFs, 1*DOFs:1*DOFs+1*DOCs]
+Kpu = K[1*DOFs:1*DOFs+1*DOCs, 0:DOFs]
+Kpp = K[1*DOFs:1*DOFs+1*DOCs, 1*DOFs:1*DOFs+1*DOCs]
+
+#
+F = Fp - np.matmul(Kup, Up)
+Uu = np.matmul(np.linalg.inv(Kuu), F)
+Fu = np.matmul(Kpu, Uu) + np.matmul(Kpp, Up)
+
+#
+ENL = update_nodes(ENL, Uu, NL, Fu)
+
 # debug
 print(Fp)
 print(Up)
+print(Fu)
+print(Uu)
+print(ENL)
+
+
+#===============================================================================================
+# https://www.youtube.com/watch?v=tv1TlAebvm0&list=PLnT2pATp7adWUaMh0A8jfoN_OHGAmt_m4&index=3
+#===============================================================================================
+
+# exaggeration
+scale = 100
+
+# initialization
+coor = []
+dispx_array = []
+
+# make array
+for i in range(np.size(NL, 0)):
+    # displacement
+    dispx = ENL[i, 8]
+    dispy = ENL[i, 9]
+
+    # position + displacement * scale
+    x = ENL[i, 0] + dispx * scale
+    y = ENL[i, 1] + dispy * scale
+
+    # displacement x
+    dispx_array.append(dispx)
+
+    # coordinates (x, y)
+    coor.append(np.array([x, y]))
+
+# numpy array, vertical stack
+coor = np.vstack(coor)
+dispx_array = np.vstack(dispx_array)
+
+# initialzation
+x_scatter = []
+y_scatter = []
+color_x = []
+
+#
+for i in range(0, np.size(EL, 0)):
+    # two nodes in an element
+    x1 = coor[EL[i, 0] - 1, 0]
+    x2 = coor[EL[i, 1] - 1, 0]
+    y1 = coor[EL[i, 0] - 1, 1]
+    y2 = coor[EL[i, 1] - 1, 1]
+
+    #
+    dispx_EL = np.array([dispx_array[EL[i, 0] - 1], dispx_array[EL[i, 1] - 1]])
+
+    # two cases
+    if x1 == x2:
+        x = np.linspace(x1, x2, 200)
+        y = np.linspace(y1, y2, 200)
+    else:
+        m = (y2 - y1) / (x2 - x1)
+        x = np.linspace(x1, x2, 200)
+        y = m * (x - x1) + y1
+
+    #
+    x_scatter.append(x)
+    y_scatter.append(y)
+
+    #
+    color_x.append(np.linspace(np.abs(dispx_EL[0]), np.abs(dispx_EL[1]), 200))
+
+#
+x_scatter = np.vstack([x_scatter]).flatten()
+y_scatter = np.vstack([y_scatter]).flatten()
+color_x = np.vstack([color_x]).flatten()
+
+# plot 1
+dispFig = plt.figure(1)
+ax_dispx = dispFig.add_subplot(111)
+
+cmap = plt.get_cmap('jet')
+ax_dispx.scatter(x_scatter, y_scatter, c=color_x, cmap=cmap, s=10, edgecolor='none')
+
+# normalization & colormap
+norm_x = Normalize(np.abs(dispx_array.min()), np.abs(dispx_array.max()))
+#dispFig.colorbar(ScalarMappable(norm=norm_x, cmap=cmap))
+
+plt.show()
+
+
+
+
+
+
+
 
 
